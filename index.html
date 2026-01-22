@@ -1,0 +1,1008 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Impostor de Palabras — Juego local (hasta 10)</title>
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500,700,900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <style>
+    :root{
+      --bg0:#07070c;
+      --bg1:#0b0b14;
+      --ink:#eef0ff;
+      --muted:#b8bad6;
+      --soft: rgba(255,255,255,.08);
+      --soft2: rgba(255,255,255,.12);
+      --line: rgba(255,255,255,.14);
+      --shadow: 0 18px 60px rgba(0,0,0,.55);
+      --accent:#d7ff6a; /* ácido */
+      --accent2:#8a5cff; /* violeta eléctrico */
+      --danger:#ff4d6d;
+      --ok:#3ef6b1;
+      --warn:#ffd166;
+
+      --r-xl: 28px;
+      --r-lg: 20px;
+      --r-md: 14px;
+    }
+
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;
+      color:var(--ink);
+      font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      background:
+        radial-gradient(1200px 900px at 20% -10%, rgba(138,92,255,.35), transparent 60%),
+        radial-gradient(1000px 800px at 105% 35%, rgba(215,255,106,.22), transparent 62%),
+        radial-gradient(900px 600px at 35% 110%, rgba(62,246,177,.12), transparent 55%),
+        linear-gradient(180deg, var(--bg0), var(--bg1));
+      overflow-x:hidden;
+    }
+
+    /* subtle grain */
+    body:before{
+      content:"";
+      position:fixed; inset:0;
+      pointer-events:none;
+      opacity:.09;
+      mix-blend-mode:overlay;
+      background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)' opacity='.35'/%3E%3C/svg%3E");
+      background-size:220px 220px;
+    }
+
+    a{color:inherit}
+    button, input, select{font:inherit}
+
+    .wrap{
+      max-width:1100px;
+      margin:0 auto;
+      padding: clamp(18px, 3.2vw, 40px);
+      position:relative;
+    }
+
+    header{
+      display:grid;
+      grid-template-columns: 1.2fr .8fr;
+      gap:18px;
+      align-items:end;
+      margin-bottom:22px;
+    }
+    @media (max-width: 900px){
+      header{grid-template-columns:1fr}
+    }
+
+    .brand{
+      padding: 20px 22px;
+      border-radius: var(--r-xl);
+      border:1px solid var(--line);
+      background: linear-gradient(135deg, rgba(255,255,255,.10), rgba(255,255,255,.04));
+      box-shadow: var(--shadow);
+      position:relative;
+      overflow:hidden;
+    }
+    .brand:after{
+      content:"";
+      position:absolute;
+      width:420px; height:420px;
+      right:-220px; top:-240px;
+      background: radial-gradient(circle at 30% 30%, rgba(215,255,106,.38), transparent 60%),
+                  radial-gradient(circle at 70% 70%, rgba(138,92,255,.32), transparent 58%);
+      filter: blur(2px);
+      transform: rotate(12deg);
+      opacity:.9;
+    }
+
+    .kicker{
+      text-transform: uppercase;
+      letter-spacing: .18em;
+      font-size: 12px;
+      color: var(--muted);
+      position:relative;
+      z-index:1;
+    }
+
+    h1{
+      margin:.35rem 0 .15rem;
+      font-family: Fraunces, serif;
+      font-weight: 900;
+      letter-spacing: -0.02em;
+      font-size: clamp(30px, 3.7vw, 54px);
+      line-height: 1.02;
+      position:relative;
+      z-index:1;
+    }
+    .sub{
+      margin:0;
+      color:rgba(238,240,255,.78);
+      max-width: 64ch;
+      font-size: 14.5px;
+      line-height:1.5;
+      position:relative;
+      z-index:1;
+    }
+
+    .metaCard{
+      border-radius: var(--r-xl);
+      border:1px solid var(--line);
+      background: linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.03));
+      box-shadow: var(--shadow);
+      padding: 18px 18px;
+      position:relative;
+      overflow:hidden;
+    }
+    .metaCard:before{
+      content:"";
+      position:absolute; inset:-2px;
+      background:
+        linear-gradient(120deg, transparent 0 35%, rgba(215,255,106,.10) 45%, transparent 60%),
+        radial-gradient(500px 220px at 20% 0%, rgba(138,92,255,.22), transparent 60%);
+      opacity:.9;
+      filter: blur(0.2px);
+      pointer-events:none;
+    }
+    .metaCard > *{position:relative; z-index:1}
+
+    .row{
+      display:flex;
+      gap:12px;
+      flex-wrap:wrap;
+      align-items:center;
+    }
+
+    .pill{
+      display:inline-flex;
+      align-items:center;
+      gap:10px;
+      padding:10px 12px;
+      border-radius: 999px;
+      border:1px solid var(--line);
+      background: rgba(0,0,0,.22);
+      backdrop-filter: blur(10px);
+    }
+    .pill label{
+      color:var(--muted);
+      font-size: 12px;
+      letter-spacing:.08em;
+      text-transform:uppercase;
+    }
+
+    select, input[type="text"], input[type="number"]{
+      background: rgba(255,255,255,.06);
+      border:1px solid rgba(255,255,255,.14);
+      color:var(--ink);
+      border-radius: 12px;
+      padding: 10px 12px;
+      outline:none;
+      transition: transform .18s ease, border-color .18s ease, background .18s ease;
+      min-width: 90px;
+    }
+    input[type="text"]{min-width: 210px}
+    select:focus, input:focus{
+      border-color: rgba(215,255,106,.55);
+      background: rgba(255,255,255,.08);
+    }
+
+    .btn{
+      border:1px solid rgba(255,255,255,.14);
+      background: linear-gradient(180deg, rgba(255,255,255,.10), rgba(255,255,255,.05));
+      color:var(--ink);
+      padding: 12px 14px;
+      border-radius: 14px;
+      cursor:pointer;
+      transition: transform .12s ease, box-shadow .18s ease, border-color .18s ease, background .18s ease;
+      box-shadow: 0 10px 26px rgba(0,0,0,.35);
+      user-select:none;
+    }
+    .btn:hover{
+      transform: translateY(-1px);
+      border-color: rgba(215,255,106,.42);
+      box-shadow: 0 14px 34px rgba(0,0,0,.42);
+    }
+    .btn:active{transform: translateY(0px) scale(.99)}
+    .btn.primary{
+      border-color: rgba(215,255,106,.55);
+      background: linear-gradient(180deg, rgba(215,255,106,.20), rgba(215,255,106,.08));
+    }
+    .btn.danger{
+      border-color: rgba(255,77,109,.55);
+      background: linear-gradient(180deg, rgba(255,77,109,.18), rgba(255,77,109,.06));
+    }
+
+    main{
+      display:grid;
+      grid-template-columns: 1.15fr .85fr;
+      gap: 16px;
+      align-items:start;
+    }
+    @media (max-width: 980px){
+      main{grid-template-columns:1fr}
+    }
+
+    .panel{
+      border-radius: var(--r-xl);
+      border: 1px solid var(--line);
+      background: linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.03));
+      box-shadow: var(--shadow);
+      overflow:hidden;
+      position:relative;
+    }
+    .panelHeader{
+      padding: 16px 18px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      border-bottom: 1px solid rgba(255,255,255,.10);
+      background:
+        radial-gradient(800px 160px at 10% 0%, rgba(138,92,255,.22), transparent 62%),
+        radial-gradient(760px 160px at 100% 0%, rgba(215,255,106,.16), transparent 62%);
+    }
+    .panelHeader h2{
+      margin:0;
+      font-family: Fraunces, serif;
+      font-size: 18px;
+      letter-spacing: -0.01em;
+    }
+    .panelHeader .small{
+      color: var(--muted);
+      font-size: 12px;
+      letter-spacing:.08em;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+    .panelBody{padding: 16px 18px}
+
+    .playersGrid{
+      display:grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+    @media (max-width: 520px){
+      .playersGrid{grid-template-columns:1fr}
+      input[type="text"]{min-width: 100%}
+    }
+
+    .playerCard{
+      border-radius: var(--r-lg);
+      border: 1px solid rgba(255,255,255,.12);
+      background: rgba(0,0,0,.18);
+      padding: 12px;
+      position:relative;
+      overflow:hidden;
+    }
+    .playerCard:before{
+      content:"";
+      position:absolute; inset:-2px;
+      background: radial-gradient(420px 140px at 10% 0%, rgba(62,246,177,.08), transparent 60%),
+                  radial-gradient(420px 140px at 90% 110%, rgba(138,92,255,.10), transparent 60%);
+      pointer-events:none;
+      opacity:.9;
+    }
+    .playerCard > *{position:relative; z-index:1}
+
+    .playerTop{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      margin-bottom:10px;
+    }
+    .badge{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      padding: 7px 10px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,.14);
+      background: rgba(255,255,255,.06);
+      color: rgba(238,240,255,.88);
+      font-size: 12px;
+      letter-spacing:.06em;
+      text-transform: uppercase;
+    }
+    .dot{
+      width:10px;height:10px;border-radius:999px;
+      background: var(--muted);
+      box-shadow: 0 0 0 4px rgba(184,186,214,.12);
+    }
+
+    .status{
+      display:flex;
+      justify-content:space-between;
+      gap:10px;
+      align-items:center;
+      color: var(--muted);
+      font-size: 12.5px;
+    }
+    .hint{
+      font-weight:700;
+      color: rgba(238,240,255,.92);
+    }
+
+    .rightCol{
+      display:flex;
+      flex-direction:column;
+      gap:16px;
+      position:sticky;
+      top: 14px;
+    }
+    @media (max-width: 980px){
+      .rightCol{position:relative; top:auto}
+    }
+
+    .bigAction{
+      display:flex;
+      gap:12px;
+      flex-wrap:wrap;
+    }
+
+    .notice{
+      margin-top: 10px;
+      color: rgba(238,240,255,.78);
+      font-size: 13px;
+      line-height:1.5;
+      padding: 12px 12px;
+      border-radius: var(--r-lg);
+      border:1px dashed rgba(255,255,255,.18);
+      background: rgba(0,0,0,.16);
+    }
+
+    /* Reveal modal */
+    dialog{
+      width:min(720px, calc(100% - 26px));
+      border:none;
+      border-radius: 22px;
+      padding:0;
+      background: transparent;
+      color: var(--ink);
+    }
+    dialog::backdrop{
+      background: rgba(0,0,0,.62);
+      backdrop-filter: blur(8px);
+    }
+    .modal{
+      border-radius: 22px;
+      border: 1px solid rgba(255,255,255,.16);
+      overflow:hidden;
+      box-shadow: 0 40px 120px rgba(0,0,0,.65);
+      background:
+        radial-gradient(1200px 320px at 20% 0%, rgba(215,255,106,.18), transparent 60%),
+        radial-gradient(900px 260px at 100% 0%, rgba(138,92,255,.22), transparent 62%),
+        linear-gradient(180deg, rgba(12,12,22,.92), rgba(9,9,16,.92));
+    }
+    .modalHead{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:10px;
+      padding: 14px 16px;
+      border-bottom: 1px solid rgba(255,255,255,.12);
+      background: rgba(0,0,0,.22);
+    }
+    .modalHead h3{
+      margin:0;
+      font-family: Fraunces, serif;
+      font-size: 18px;
+      letter-spacing:-0.01em;
+    }
+    .modalBody{padding: 16px}
+
+    .who{
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap:12px;
+      margin-bottom: 10px;
+    }
+    .who .name{
+      font-weight: 800;
+      letter-spacing:-0.02em;
+      font-size: 18px;
+    }
+    .who .tag{
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing:.14em;
+      color: var(--muted);
+    }
+    .bigWord{
+      font-family: Fraunces, serif;
+      font-weight: 900;
+      letter-spacing:-0.02em;
+      font-size: clamp(30px, 5.3vw, 54px);
+      line-height: 1.02;
+      margin: 10px 0 2px;
+    }
+    .bigWord.good{
+      color: var(--accent);
+      text-shadow: 0 0 0 rgba(0,0,0,0), 0 0 26px rgba(215,255,106,.18);
+    }
+    .bigWord.bad{
+      color: var(--accent2);
+      text-shadow: 0 0 0 rgba(0,0,0,0), 0 0 26px rgba(138,92,255,.22);
+    }
+    .muted{color:var(--muted)}
+    .footerActions{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      justify-content:flex-end;
+      padding: 14px 16px;
+      border-top: 1px solid rgba(255,255,255,.12);
+      background: rgba(0,0,0,.22);
+    }
+
+    /* Staggered reveal */
+    .reveal{
+      opacity:0;
+      transform: translateY(10px);
+      animation: in .62s cubic-bezier(.2,.9,.2,1) forwards;
+    }
+    .d1{animation-delay:.05s}
+    .d2{animation-delay:.12s}
+    .d3{animation-delay:.19s}
+    .d4{animation-delay:.26s}
+    .d5{animation-delay:.33s}
+    @keyframes in{
+      to{opacity:1; transform: translateY(0)}
+    }
+
+    .srOnly{
+      position:absolute!important;
+      width:1px;height:1px;
+      padding:0;margin:-1px;
+      overflow:hidden;
+      clip:rect(0,0,0,0);
+      white-space:nowrap;border:0;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="wrap">
+    <header>
+      <section class="brand reveal d1" aria-label="Presentación del juego">
+        <p class="kicker">Juego local · sin internet · ideal para reuniones</p>
+        <h1>Impostor de Palabras</h1>
+        <p class="sub">
+          Configura jugadores e impostores (máx. 10). Todos reciben la <b>misma palabra</b> excepto el/los impostor(es),
+          que reciben una <b>pista</b> relacionada. Pasen el celular y revelen de a uno.
+        </p>
+      </section>
+
+      <aside class="metaCard reveal d2" aria-label="Controles rápidos">
+        <div class="row" style="justify-content:space-between">
+          <div class="pill" title="Tamaño del set">
+            <label>Banco</label>
+            <div id="bankInfo" style="font-weight:700">50 palabras · 5 pistas c/u</div>
+          </div>
+          <button class="btn" id="btnDemo" type="button" title="Rellena nombres automáticamente">Nombres demo</button>
+        </div>
+
+        <div class="row" style="margin-top:12px">
+          <div class="pill">
+            <label for="playersCount">Jugadores</label>
+            <select id="playersCount" aria-label="Cantidad de jugadores"></select>
+          </div>
+          <div class="pill">
+            <label for="impostorsCount">Impostores</label>
+            <select id="impostorsCount" aria-label="Cantidad de impostores"></select>
+          </div>
+          <button class="btn primary" id="btnStart" type="button">Iniciar ronda</button>
+          <button class="btn danger" id="btnReset" type="button" title="Borra la ronda actual">Reiniciar</button>
+        </div>
+
+        <div class="notice" role="note">
+          Consejo: si hay 2+ impostores, cada uno verá una pista relacionada diferente (no la palabra real).
+        </div>
+      </aside>
+    </header>
+
+    <main>
+      <section class="panel reveal d3" aria-label="Jugadores">
+        <div class="panelHeader">
+          <h2>Jugadores</h2>
+          <div class="small" id="playersHint">Edita nombres · luego inicia</div>
+        </div>
+        <div class="panelBody">
+          <div class="playersGrid" id="playersGrid" aria-live="polite"></div>
+        </div>
+      </section>
+
+      <aside class="rightCol">
+        <section class="panel reveal d4" aria-label="Ronda actual">
+          <div class="panelHeader">
+            <h2>Ronda</h2>
+            <div class="small" id="roundStatus">Sin iniciar</div>
+          </div>
+          <div class="panelBody">
+            <div class="row" style="justify-content:space-between; align-items:stretch">
+              <div style="flex:1; min-width: 240px;">
+                <div class="pill" style="width:100%; justify-content:space-between">
+                  <div>
+                    <div style="color:var(--muted); font-size:12px; letter-spacing:.08em; text-transform:uppercase">Progreso</div>
+                    <div style="font-weight:800; margin-top:2px" id="progressText">0 / 0</div>
+                  </div>
+                  <div style="text-align:right">
+                    <div style="color:var(--muted); font-size:12px; letter-spacing:.08em; text-transform:uppercase">Siguiente</div>
+                    <div style="font-weight:800; margin-top:2px" id="nextPlayerName">—</div>
+                  </div>
+                </div>
+
+                <div class="bigAction" style="margin-top:12px">
+                  <button class="btn primary" id="btnReveal" type="button" disabled>Revelar para el siguiente</button>
+                  <button class="btn" id="btnEndRound" type="button" disabled>Finalizar (mostrar palabra)</button>
+                </div>
+
+                <div class="notice" id="privacyNote">
+                  Privacidad: toca <b>Revelar</b>, lee y luego toca <b>Ocultar</b> antes de pasar el celular.
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel reveal d5" aria-label="Reglas rápidas">
+          <div class="panelHeader">
+            <h2>Reglas rápidas</h2>
+            <div class="small">1–3 min</div>
+          </div>
+          <div class="panelBody">
+            <ol style="margin:0; padding-left: 18px; color: rgba(238,240,255,.82); line-height:1.55">
+              <li>Todos ven la <b>palabra</b>, el/los impostor(es) ven una <b>pista</b> relacionada.</li>
+              <li>Hablen por turnos describiendo sin decir la palabra.</li>
+              <li>Al final: voten quién es impostor. Luego revelen la palabra real.</li>
+            </ol>
+          </div>
+        </section>
+      </aside>
+    </main>
+
+    <footer style="margin-top:18px; color: rgba(238,240,255,.62); font-size:12.5px">
+      Hecho para GitHub Pages: es un solo archivo HTML (sin imágenes externas). Guarda como <code>index.html</code>.
+    </footer>
+  </div>
+
+  <!-- Reveal dialog -->
+  <dialog id="revealDialog" aria-labelledby="revealTitle">
+    <div class="modal">
+      <div class="modalHead">
+        <h3 id="revealTitle">Carta</h3>
+        <button class="btn" id="btnCloseDialog" type="button" aria-label="Cerrar">Cerrar</button>
+      </div>
+      <div class="modalBody">
+        <div class="who">
+          <div>
+            <div class="tag">Jugador</div>
+            <div class="name" id="dlgPlayerName">—</div>
+          </div>
+          <div class="badge" id="dlgRoleBadge" title="Rol">
+            <span class="dot" id="dlgRoleDot"></span>
+            <span id="dlgRoleText">—</span>
+          </div>
+        </div>
+
+        <div class="tag">Tu palabra</div>
+        <div class="bigWord" id="dlgMainWord">—</div>
+        <div class="muted" id="dlgSubText" style="margin-top:6px; font-size:13px; line-height:1.45"></div>
+      </div>
+      <div class="footerActions">
+        <button class="btn primary" id="btnHideAndNext" type="button">Ocultar y pasar</button>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- End dialog -->
+  <dialog id="endDialog" aria-labelledby="endTitle">
+    <div class="modal">
+      <div class="modalHead">
+        <h3 id="endTitle">Fin de ronda</h3>
+        <button class="btn" id="btnCloseEnd" type="button" aria-label="Cerrar">Cerrar</button>
+      </div>
+      <div class="modalBody">
+        <div class="card">
+          <div class="tag">La palabra real era</div>
+          <div class="bigWord good" id="endWord">—</div>
+          <div class="muted" id="endMeta" style="margin-top:8px"></div>
+        </div>
+
+        <div class="card" style="margin-top:12px">
+          <div class="tag">Impostor(es)</div>
+          <div id="endImpostors" style="margin-top:8px; font-weight:700"></div>
+          <div class="muted" style="margin-top:8px; font-size:12.5px; line-height:1.45">
+            Si quieres otra palabra, toca <b>Iniciar ronda</b> nuevamente.
+          </div>
+        </div>
+      </div>
+      <div class="footerActions">
+        <button class="btn primary" id="btnNewRound" type="button">Nueva ronda</button>
+      </div>
+    </div>
+  </dialog>
+
+  <script>
+    // ---------- Word bank (50 words, each has 5 concrete hints) ----------
+    const BANK = [
+      { word: "Dormitorio", hints: ["Cama", "Almohada", "Armario", "Lámpara", "Silla"] },
+      { word: "Gato", hints: ["Bigotes", "Ratón", "Cola", "Maullar", "Pelaje"] },
+      { word: "Pan", hints: ["Harina", "Horno", "Molde", "Miga", "Corteza"] },
+      { word: "Café", hints: ["Taza", "Granos", "Amargo", "Tostado", "Molido"] },
+      { word: "Plátano", hints: ["Amarillo", "Fruta", "Tropical", "Pelar", "Dulce"] },
+      { word: "Teléfono", hints: ["Llamada", "Pantalla", "Botón", "Auriculares", "Mensaje"] },
+      { word: "Auto", hints: ["Volante", "Motor", "Ruedas", "Puertas", "Asientos"] },
+      { word: "Escuela", hints: ["Profesor", "Alumno", "Cuaderno", "Examen", "Tarea"] },
+      { word: "Perro", hints: ["Ladrido", "Collar", "Paseo", "Pelaje", "Hueso"] },
+      { word: "Libro", hints: ["Página", "Portada", "Letras", "Historia", "Autor"] },
+      { word: "Computadora", hints: ["Teclado", "Pantalla", "Ratón", "Procesador", "Memoria"] },
+      { word: "Montaña", hints: ["Pico", "Roca", "Nieve", "Sendero", "Altura"] },
+      { word: "Playa", hints: ["Arena", "Mar", "Sombrilla", "Olas", "Toalla"] },
+      { word: "Río", hints: ["Agua", "Corriente", "Pescado", "Puente", "Orilla"] },
+      { word: "Helado", hints: ["Frío", "Dulce", "Cono", "Sabor", "Nieve"] },
+      { word: "Zapato", hints: ["Cordones", "Suela", "Talla", "Piel", "Tacón"] },
+      { word: "Mesa", hints: ["Patas", "Superficie", "Comida", "Silla", "Centro"] },
+      { word: "Silla", hints: ["Respaldo", "Asiento", "Patas", "Madera", "Oficina"] },
+      { word: "Lámpara", hints: ["Luz", "Bombilla", "Interruptor", "Mesa", "Electricidad"] },
+      { word: "Agua", hints: ["Río", "Lago", "Bebida", "Hielo", "Lluvia"] },
+      { word: "Fruta", hints: ["Dulce", "Semilla", "Cáscara", "Jugo", "Árbol"] },
+      { word: "Carro", hints: ["Motor", "Ruedas", "Volante", "Puertas", "Asientos"] },
+      { word: "Avión", hints: ["Alas", "Piloto", "Vuelo", "Aeropuerto", "Pasajeros"] },
+      { word: "Reloj", hints: ["Manecillas", "Pulsera", "Hora", "Minutos", "Segundos"] },
+      { word: "Flor", hints: ["Pétalos", "Tallo", "Jardín", "Color", "Aroma"] },
+      { word: "Panadería", hints: ["Horno", "Pan", "Dulces", "Masa", "Vitrina"] },
+      { word: "Cielo", hints: ["Nubes", "Sol", "Luna", "Estrellas", "Azul"] },
+      { word: "Mariposa", hints: ["Alas", "Colores", "Vuelo", "Jardín", "Insecto"] },
+      { word: "Bicicleta", hints: ["Pedales", "Ruedas", "Manillar", "Asiento", "Cadena"] },
+      { word: "Chocolate", hints: ["Dulce", "Cacao", "Barra", "Leche", "Postre"] },
+      { word: "Jardín", hints: ["Plantas", "Flores", "Tierra", "Riego", "Sol"] },
+      { word: "Sombrero", hints: ["Cabeza", "Tela", "Ala", "Protección", "Moda"] },
+      { word: "Telaraña", hints: ["Araña", "Hilos", "Insectos", "Trampa", "Casa"] },
+      { word: "Cuchara", hints: ["Comida", "Sopa", "Metal", "Mango", "Utensilio"] },
+      { word: "Ventana", hints: ["Cristal", "Marco", "Casa", "Luz", "Aire"] },
+      { word: "Puerta", hints: ["Manija", "Bisagra", "Entrada", "Casa", "Cerradura"] },
+      { word: "Reloj", hints: ["Hora", "Minutos", "Segundos", "Pulsera", "Manecillas"] },
+      { word: "Teléfono", hints: ["Llamada", "Pantalla", "Botón", "Auriculares", "Mensaje"] },
+      { word: "Computadora", hints: ["Teclado", "Pantalla", "Ratón", "Procesador", "Memoria"] },
+      { word: "Libro", hints: ["Páginas", "Portada", "Letras", "Autor", "Historia"] },
+      { word: "Mesa", hints: ["Patas", "Superficie", "Comida", "Silla", "Centro"] },
+      { word: "Silla", hints: ["Respaldo", "Asiento", "Patas", "Madera", "Oficina"] },
+      { word: "Lámpara", hints: ["Luz", "Bombilla", "Interruptor", "Mesa", "Electricidad"] },
+      { word: "Agua", hints: ["Río", "Lago", "Bebida", "Hielo", "Lluvia"] },
+      { word: "Fruta", hints: ["Dulce", "Semilla", "Cáscara", "Jugo", "Árbol"] },
+      { word: "Carro", hints: ["Motor", "Ruedas", "Volante", "Puertas", "Asientos"] },
+      { word: "Avión", hints: ["Alas", "Piloto", "Vuelo", "Aeropuerto", "Pasajeros"] },
+      { word: "Flor", hints: ["Pétalos", "Tallo", "Jardín", "Color", "Aroma"] },
+      { word: "Cielo", hints: ["Nubes", "Sol", "Luna", "Estrellas", "Azul"] },
+      { word: "Mariposa", hints: ["Alas", "Colores", "Vuelo", "Jardín", "Insecto"] },
+      { word: "Bicicleta", hints: ["Pedales", "Ruedas", "Manillar", "Asiento", "Cadena"] }
+    ];
+
+    // ---------- State ----------
+    const state = {
+      players: [],
+      playersCount: 6,
+      impostorsCount: 1,
+      started: false,
+      round: null, // { wordObj, impostorIdxSet, assignedHints: Map(idx->hint), revealIndex }
+    };
+
+    // ---------- DOM ----------
+    const $ = (s, root=document) => root.querySelector(s);
+    const playersCountSel = $("#playersCount");
+    const impostorsCountSel = $("#impostorsCount");
+    const playersGrid = $("#playersGrid");
+
+    const btnStart = $("#btnStart");
+    const btnReset = $("#btnReset");
+    const btnReveal = $("#btnReveal");
+    const btnEndRound = $("#btnEndRound");
+    const btnDemo = $("#btnDemo");
+
+    const roundStatus = $("#roundStatus");
+    const progressText = $("#progressText");
+    const nextPlayerName = $("#nextPlayerName");
+
+    const revealDialog = $("#revealDialog");
+    const btnCloseDialog = $("#btnCloseDialog");
+    const btnHideAndNext = $("#btnHideAndNext");
+
+    const dlgPlayerName = $("#dlgPlayerName");
+    const dlgRoleText = $("#dlgRoleText");
+    const dlgRoleDot = $("#dlgRoleDot");
+    const dlgMainWord = $("#dlgMainWord");
+    const dlgSubText = $("#dlgSubText");
+
+    const endDialog = $("#endDialog");
+    const btnCloseEnd = $("#btnCloseEnd");
+    const btnNewRound = $("#btnNewRound");
+    const endWord = $("#endWord");
+    const endMeta = $("#endMeta");
+    const endImpostors = $("#endImpostors");
+
+    // ---------- Utilities ----------
+    function clamp(n, a, b){ return Math.max(a, Math.min(b, n)); }
+
+    function shuffle(arr){
+      const a = arr.slice();
+      for(let i=a.length-1;i>0;i--){
+        const j = Math.floor(Math.random()*(i+1));
+        [a[i], a[j]] = [a[j], a[i]];
+      }
+      return a;
+    }
+
+    function pickRandom(arr){
+      return arr[Math.floor(Math.random() * arr.length)];
+    }
+
+    function uniqueRandomIndices(count, maxExclusive){
+      const all = Array.from({length:maxExclusive}, (_,i)=>i);
+      const s = shuffle(all).slice(0, count);
+      return new Set(s);
+    }
+
+    function safeShowModal(dlg){
+      if(typeof dlg.showModal === "function") dlg.showModal();
+      else dlg.setAttribute("open",""); // fallback
+    }
+    function safeCloseModal(dlg){
+      if(typeof dlg.close === "function") dlg.close();
+      else dlg.removeAttribute("open");
+    }
+
+    // ---------- UI builders ----------
+    function fillSelectors(){
+      playersCountSel.innerHTML = "";
+      for(let i=2; i<=10; i++){
+        const opt = document.createElement("option");
+        opt.value = String(i);
+        opt.textContent = String(i);
+        playersCountSel.appendChild(opt);
+      }
+      playersCountSel.value = String(state.playersCount);
+
+      rebuildImpostorSelector();
+    }
+
+    function rebuildImpostorSelector(){
+      const p = state.playersCount;
+      impostorsCountSel.innerHTML = "";
+      for(let i=1; i<=p; i++){
+        const opt = document.createElement("option");
+        opt.value = String(i);
+        opt.textContent = String(i);
+        impostorsCountSel.appendChild(opt);
+      }
+      state.impostorsCount = clamp(state.impostorsCount, 1, p);
+      impostorsCountSel.value = String(state.impostorsCount);
+    }
+
+    function ensurePlayers(){
+      const n = state.playersCount;
+      if(state.players.length === 0){
+        state.players = Array.from({length:n}, (_,i)=>({ name:`Jugador ${i+1}` }));
+      } else if(state.players.length < n){
+        const start = state.players.length;
+        for(let i=start;i<n;i++) state.players.push({ name:`Jugador ${i+1}` });
+      } else if(state.players.length > n){
+        state.players = state.players.slice(0,n);
+      }
+    }
+
+    function renderPlayers(){
+      ensurePlayers();
+      playersGrid.innerHTML = "";
+      state.players.forEach((p, idx) => {
+        const card = document.createElement("article");
+        card.className = "playerCard";
+        card.innerHTML = `
+          <div class="playerTop">
+            <div class="badge"><span class="dot"></span><span>#${idx+1}</span></div>
+            <div class="muted" style="font-size:12px">Nombre</div>
+          </div>
+          <label class="srOnly" for="playerName${idx}">Nombre del jugador ${idx+1}</label>
+          <input id="playerName${idx}" type="text" value="${escapeHtml(p.name)}" />
+          <div class="status" style="margin-top:10px">
+            <span>Estado</span>
+            <span class="hint" id="pStatus${idx}">${state.started ? "En ronda" : "Listo"}</span>
+          </div>
+        `;
+        const input = card.querySelector("input");
+        input.addEventListener("input", (e)=>{
+          state.players[idx].name = e.target.value.trim() || `Jugador ${idx+1}`;
+          if(!state.started) updateRoundHUD();
+        });
+        playersGrid.appendChild(card);
+      });
+      updateRoundHUD();
+    }
+
+    function escapeHtml(s){
+      return String(s)
+        .replaceAll("&","&amp;")
+        .replaceAll("<","&lt;")
+        .replaceAll(">","&gt;")
+        .replaceAll('"',"&quot;")
+        .replaceAll("'","&#039;");
+    }
+
+    function updateRoundHUD(){
+      const n = state.playersCount;
+      if(!state.started || !state.round){
+        roundStatus.textContent = "Sin iniciar";
+        progressText.textContent = `0 / ${n}`;
+        nextPlayerName.textContent = "—";
+        btnReveal.disabled = true;
+        btnEndRound.disabled = true;
+        return;
+      }
+      const i = state.round.revealIndex;
+      roundStatus.textContent = "En curso";
+      progressText.textContent = `${i} / ${n}`;
+      nextPlayerName.textContent = state.players[i]?.name ?? "—";
+      btnReveal.disabled = (i >= n);
+      btnEndRound.disabled = false;
+    }
+
+    // ---------- Game logic ----------
+    function startRound(){
+      ensurePlayers();
+
+      const n = state.playersCount;
+      const k = state.impostorsCount;
+
+      if(k > n){
+        alert("Los impostores no pueden ser más que los jugadores.");
+        return;
+      }
+
+      const wordObj = pickRandom(BANK);
+      const impostorIdxSet = uniqueRandomIndices(k, n);
+
+      // Para cada impostor, asignar UNA pista aleatoria de las 5 disponibles
+      const assignedHints = new Map();
+      impostorIdxSet.forEach(idx => {
+        const hint = pickRandom(wordObj.hints);
+        assignedHints.set(idx, hint);
+      });
+
+      state.started = true;
+      state.round = {
+        wordObj,
+        impostorIdxSet,
+        assignedHints,
+        revealIndex: 0
+      };
+
+      // Actualizar estado jugadores
+      state.players.forEach((_, idx)=>{
+        const el = $(`#pStatus${idx}`);
+        if(el) el.textContent = "En ronda";
+      });
+
+      updateRoundHUD();
+    }
+
+    function resetRound(){
+      state.started = false;
+      state.round = null;
+      // Actualizar estado jugadores
+      state.players.forEach((_, idx)=>{
+        const el = $(`#pStatus${idx}`);
+        if(el) el.textContent = "Listo";
+      });
+      updateRoundHUD();
+    }
+
+    function revealNext(){
+      if(!state.started || !state.round) return;
+
+      const i = state.round.revealIndex;
+      const n = state.playersCount;
+      if(i >= n) return;
+
+      const playerName = state.players[i].name;
+      const isImpostor = state.round.impostorIdxSet.has(i);
+
+      dlgPlayerName.textContent = playerName;
+      dlgRoleText.textContent = isImpostor ? "Impostor" : "Normal";
+      dlgRoleDot.style.background = isImpostor ? "var(--accent2)" : "var(--accent)";
+      dlgRoleDot.style.boxShadow = isImpostor
+        ? "0 0 0 4px rgba(138,92,255,.14)"
+        : "0 0 0 4px rgba(215,255,106,.14)";
+
+      if(isImpostor){
+        const hint = state.round.assignedHints.get(i);
+        dlgMainWord.className = "bigWord bad";
+        dlgMainWord.textContent = hint;
+        dlgSubText.textContent = "Eres el impostor: te tocó una pista relacionada. Trata de adivinar la palabra real sin delatarte.";
+      } else {
+        dlgMainWord.className = "bigWord good";
+        dlgMainWord.textContent = state.round.wordObj.word;
+        dlgSubText.textContent = "Eres normal: describe la palabra sin decirla, y descubre al impostor.";
+      }
+
+      safeShowModal(revealDialog);
+    }
+
+    btnReveal.addEventListener("click", revealNext);
+
+    btnHideAndNext.addEventListener("click", ()=>{
+      safeCloseModal(revealDialog);
+      if(state.round){
+        state.round.revealIndex++;
+        updateRoundHUD();
+      }
+    });
+
+    btnCloseDialog.addEventListener("click", ()=>{
+      safeCloseModal(revealDialog);
+    });
+
+    btnEndRound.addEventListener("click", ()=>{
+      if(!state.started || !state.round) return;
+
+      endWord.textContent = state.round.wordObj.word;
+      const n = state.playersCount;
+      const k = state.impostorsCount;
+
+      const impostorNames = [];
+      state.round.impostorIdxSet.forEach(idx => impostorNames.push(state.players[idx]?.name ?? `Jugador ${idx+1}`));
+
+      endImpostors.textContent = impostorNames.join(" · ");
+      endMeta.textContent = `${n} jugadores · ${k} impostor(es)`;
+
+      safeShowModal(endDialog);
+    });
+
+    btnCloseEnd.addEventListener("click", ()=> safeCloseModal(endDialog));
+    btnNewRound.addEventListener("click", ()=>{
+      safeCloseModal(endDialog);
+      startRound();
+    });
+
+    btnStart.addEventListener("click", ()=>{
+      startRound();
+    });
+
+    btnReset.addEventListener("click", ()=>{
+      resetRound();
+    });
+
+    playersCountSel.addEventListener("change", ()=>{
+      state.playersCount = parseInt(playersCountSel.value, 10);
+      rebuildImpostorSelector();
+      renderPlayers();
+      resetRound();
+    });
+
+    impostorsCountSel.addEventListener("change", ()=>{
+      state.impostorsCount = parseInt(impostorsCountSel.value, 10);
+      resetRound();
+    });
+
+    btnDemo.addEventListener("click", ()=>{
+      ensurePlayers();
+      const demo = ["Ana","Bruno","Carla","Diego","Elena","Fabián","Gaby","Hugo","Iris","Julián"];
+      state.players = state.players.map((p,i)=>({name: demo[i] ?? `Jugador ${i+1}`}));
+      renderPlayers();
+    });
+
+    revealDialog.addEventListener("close", ()=>{ updateRoundHUD(); });
+    endDialog.addEventListener("close", ()=>{ /* no-op */ });
+
+    // ---------- Init ----------
+    (function init(){
+      fillSelectors();
+      renderPlayers();
+      resetRound();
+      $("#bankInfo").textContent = `${BANK.length} palabras · 5 pistas c/u`;
+    })();
+  </script>
+</body>
+</html>
